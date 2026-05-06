@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="保單試算">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#003B5C">
+    
+    <title>保險商品效益計算機</title>
+    <style>
+        :root {
+            --primary: #003B5C;
+            --secondary: #EBF2F7;
+            --accent: #D4AF37;
+            --text-dark: #333333;
+            --border: #CCCCCC;
+            --bg-light: #F8F9FA;
+            --danger: #D9534F;
+            --success: #5CB85C;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+        body { background-color: #E9ECEF; color: var(--text-dark); padding: 16px; font-size: 14px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #FFFFFF; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
+        .header { background-color: var(--primary); color: #FFFFFF; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.25rem; font-weight: 600; }
+        .btn { background-color: var(--accent); color: #FFFFFF; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+        .control-panel { padding: 16px 20px; background-color: var(--secondary); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 0.85rem; margin-bottom: 6px; font-weight: 600; color: var(--primary); }
+        .form-control { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem; }
+        .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 59, 92, 0.2); }
+        .toolbar { padding: 12px 20px; display: flex; align-items: center; border-bottom: 1px solid var(--border); background: #FFFFFF; }
+        .checkbox-label { display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--text-dark); user-select: none; }
+        .checkbox-label input { margin-right: 8px; width: 16px; height: 16px; }
+        .table-container { flex-grow: 1; overflow: auto; position: relative; }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
+        th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); text-align: right; white-space: nowrap; }
+        th { background-color: var(--bg-light); color: var(--primary); font-weight: 600; position: sticky; top: 0; z-index: 10; border-top: 1px solid var(--border); }
+        thead tr:nth-child(1) th { top: 0; border-bottom: 1px solid var(--border); }
+        thead tr:nth-child(2) th { top: 41px; border-top: none; }
+        th:first-child, td:first-child { text-align: center; border-left: 1px solid var(--border); }
+
+        .col-group-1 { background-color: rgba(235, 242, 247, 0.4); }
+        .col-group-2 { background-color: rgba(255, 255, 255, 1); }
+        .col-group-3 { background-color: rgba(253, 249, 237, 0.4); }
+        tbody tr:hover { background-color: rgba(0, 59, 92, 0.05); }
+
+        .input-cell { width: 100px; padding: 6px; border: 1px solid #aaa; border-radius: 4px; text-align: right; font-size: 0.95rem; color: var(--primary); background-color: #fff; }
+        .input-cell:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3); }
+        .calculated-val { font-weight: 600; }
+        .text-danger { color: var(--danger); }
+        .text-success { color: var(--success); }
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.1rem; }
+            body { padding: 0; }
+            .container { border-radius: 0; max-height: 100vh; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>保險商品效益計算機</h1>
+        <button class="btn" id="btnExport">複製數據 (TSV)</button>
+    </div>
+
+    <div class="control-panel">
+        <div class="form-group">
+            <label for="g_payYears">繳費年期</label>
+            <input type="number" id="g_payYears" class="form-control" value="6" min="1" inputmode="numeric">
+        </div>
+        <div class="form-group">
+            <label for="g_premium">每期實繳保費</label>
+            <input type="number" id="g_premium" class="form-control" value="100000" min="0" inputmode="numeric">
+        </div>
+        <div class="form-group">
+            <label for="g_displayYears">顯示年數</label>
+            <input type="number" id="g_displayYears" class="form-control" value="10" min="1" max="110" inputmode="numeric">
+        </div>
+        <div class="form-group">
+            <label for="g_survivalToggle">生存還本金開關</label>
+            <select id="g_survivalToggle" class="form-control">
+                <option value="0">無</option>
+                <option value="1">有</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <label class="checkbox-label">
+            <input type="checkbox" id="filterToggle">
+            僅顯示指定年度 (有輸入解約金或身故金之年度)
+        </label>
+    </div>
+
+    <div class="table-container">
+        <table id="calcTable">
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 60px;">年度</th>
+                    <th colspan="2" class="col-group-1">投入保費</th>
+                    <th colspan="4" class="col-group-2" id="th_assetGroup">資產價值與報酬</th>
+                    <th colspan="2" class="col-group-3">傳承倍數效益</th>
+                </tr>
+                <tr>
+                    <th class="col-group-1">實繳保費(可修改)</th>
+                    <th class="col-group-1">累積保費</th>
+                    <th class="col-group-2 survival-col hidden">生存還本</th>
+                    <th class="col-group-2">末解約金</th>
+                    <th class="col-group-2">ROI</th>
+                    <th class="col-group-2">IRR</th>
+                    <th class="col-group-3">身故保險金</th>
+                    <th class="col-group-3">放大倍數</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<textarea id="clipboard-fallback" style="position: absolute; left: -9999px;"></textarea>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userStore = {};
+
+    const els = {
+        g_payYears: document.getElementById('g_payYears'),
+        g_premium: document.getElementById('g_premium'),
+        g_displayYears: document.getElementById('g_displayYears'),
+        g_survivalToggle: document.getElementById('g_survivalToggle'),
+        filterToggle: document.getElementById('filterToggle'),
+        tableBody: document.getElementById('tableBody'),
+        btnExport: document.getElementById('btnExport'),
+        th_assetGroup: document.getElementById('th_assetGroup'),
+        survivalCols: document.getElementsByClassName('survival-col')
+    };
+
+    const fmt = function(num) { 
+        return (num === null || num === undefined || isNaN(num)) ? '-' : Number(num).toLocaleString('en-US', { maximumFractionDigits: 0 }); 
+    };
+    const fmtPercent = function(num) { 
+        return (num === null || num === undefined || isNaN(num)) ? '-' : (num * 100).toFixed(2) + '%'; 
+    };
+    const fmtMultiplier = function(num) { 
+        return (num === null || num === undefined || isNaN(num)) ? '-' : num.toFixed(2) + ' 倍'; 
+    };
+
+    function calculateIRR(cashFlows) {
+        let hasPositive = false, hasNegative = false;
+        for (let i = 0; i < cashFlows.length; i++) {
+            if (cashFlows[i] > 0) hasPositive = true;
+            if (cashFlows[i] < 0) hasNegative = true;
+        }
+        if (!hasPositive || !hasNegative) return null; 
+
+        const maxIterations = 1000;
+        const tolerance = 1e-7;
+        let rate = 0.05; 
+
+        for (let i = 0; i < maxIterations; i++) {
+            let npv = 0, derivative = 0;
+            for (let t = 0; t < cashFlows.length; t++) {
+                npv += cashFlows[t] / Math.pow(1 + rate, t);
+                if (t > 0) derivative -= t * cashFlows[t] / Math.pow(1 + rate, t + 1);
+            }
+            if (Math.abs(npv) < tolerance) return rate;
+            if (derivative === 0) return null;
+            
+            rate = rate - (npv / derivative);
+            if (rate <= -1) rate = -0.999;
+        }
+        return null;
+    }
+
+    function renderTable() {
+        const displayYears = parseInt(els.g_displayYears.value) || 10;
+        const hasSurvival = els.g_survivalToggle.value === "1";
+        
+        els.th_assetGroup.colSpan = hasSurvival ? 4 : 3;
+        for (let i = 0; i < els.survivalCols.length; i++) {
+            hasSurvival ? els.survivalCols[i].classList.remove('hidden') : els.survivalCols[i].classList.add('hidden');
+        }
+
+        els.tableBody.innerHTML = '';
+
+        for (let y = 1; y <= displayYears; y++) {
+            if (!userStore[y]) userStore[y] = { premium: null, survival: null, surrender: null, death: null };
+
+            const tr = document.createElement('tr');
+            tr.id = 'row-' + y;
+            
+            const premiumVal = userStore[y].premium !== null ? userStore[y].premium : '';
+            const survivalVal = userStore[y].survival !== null ? userStore[y].survival : '';
+            const surrenderVal = userStore[y].surrender !== null ? userStore[y].surrender : '';
+            const deathVal = userStore[y].death !== null ? userStore[y].death : '';
+
+            tr.innerHTML = `
+                <td>${y}</td>
+                <td class="col-group-1"><input type="number" class="input-cell in-premium" data-year="${y}" value="${premiumVal}" placeholder="0"></td>
+                <td class="col-group-1 calculated-val out-cum-premium" id="out-cum-premium-${y}">-</td>
+                <td class="col-group-2 survival-col ${hasSurvival ? '' : 'hidden'}"><input type="number" class="input-cell in-survival" data-year="${y}" value="${survivalVal}"></td>
+                <td class="col-group-2"><input type="number" class="input-cell in-surrender" data-year="${y}" value="${surrenderVal}"></td>
+                <td class="col-group-2 calculated-val out-roi" id="out-roi-${y}">-</td>
+                <td class="col-group-2 calculated-val out-irr" id="out-irr-${y}">-</td>
+                <td class="col-group-3"><input type="number" class="input-cell in-death" data-year="${y}" value="${deathVal}"></td>
+                <td class="col-group-3 calculated-val out-mult" id="out-mult-${y}">-</td>
+            `;
+            els.tableBody.appendChild(tr);
+        }
+
+        bindTableEvents();
+        calculateAll();
+    }
+
+    function bindTableEvents() {
+        const inputs = els.tableBody.querySelectorAll('input');
+        for (let i = 0; i < inputs.length; i++) {
+            inputs[i].addEventListener('input', function(e) {
+                const year = parseInt(e.target.dataset.year);
+                const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                
+                if (e.target.classList.contains('in-premium')) userStore[year].premium = val;
+                if (e.target.classList.contains('in-survival')) userStore[year].survival = val;
+                if (e.target.classList.contains('in-surrender')) userStore[year].surrender = val;
+                if (e.target.classList.contains('in-death')) userStore[year].death = val;
+
+                calculateAll();
+            });
+        }
+    }
+
+    function calculateAll() {
+        const payYears = parseInt(els.g_payYears.value) || 0;
+        const globalPremium = parseFloat(els.g_premium.value) || 0;
+        const displayYears = parseInt(els.g_displayYears.value) || 10;
+        const hasSurvival = els.g_survivalToggle.value === "1";
+        const isFilterActive = els.filterToggle.checked;
+
+        let cumPremium = 0;
+        let cumSurvival = 0;
+        let cashFlowsHistory = [];
+
+        for (let y = 1; y <= displayYears; y++) {
+            let actualPremium = 0;
+            if (userStore[y] && userStore[y].premium !== null) {
+                actualPremium = userStore[y].premium;
+            } else if (y <= payYears) {
+                actualPremium = globalPremium;
+            }
+
+            let actualSurvival = 0;
+            if (hasSurvival && userStore[y] && userStore[y].survival !== null) {
+                actualSurvival = userStore[y].survival;
+            }
+
+            cumPremium += actualPremium;
+            cumSurvival += actualSurvival;
+
+            let surrender = userStore[y] && userStore[y].surrender !== null ? userStore[y].surrender : null;
+            let death = userStore[y] && userStore[y].death !== null ? userStore[y].death : null;
+
+            let roi = null;
+            if (surrender !== null && cumPremium > 0) roi = ((surrender + cumSurvival) / cumPremium) - 1;
+
+            let irr = null;
+            if (y === 1) {
+                cashFlowsHistory.push(-actualPremium);
+            } else {
+                cashFlowsHistory[y-1] = (cashFlowsHistory[y-1] || 0) - actualPremium;
+            }
+            
+            if (surrender !== null) {
+                let currentCF = cashFlowsHistory.slice();
+                currentCF[y] = surrender + actualSurvival; 
+                irr = calculateIRR(currentCF);
+            }
+            cashFlowsHistory[y] = actualSurvival; 
+
+            let mult = null;
+            if (death !== null && cumPremium > 0) mult = death / cumPremium;
+
+            const elCumPremium = document.getElementById('out-cum-premium-' + y);
+            const elRoi = document.getElementById('out-roi-' + y);
+            const elIrr = document.getElementById('out-irr-' + y);
+            const elMult = document.getElementById('out-mult-' + y);
+            const tr = document.getElementById('row-' + y);
+
+            if(elCumPremium) elCumPremium.innerText = cumPremium > 0 ? fmt(cumPremium) : '-';
+            if(elRoi) {
+                elRoi.innerText = fmtPercent(roi);
+                elRoi.className = 'col-group-2 calculated-val out-roi ' + (roi !== null ? (roi >= 0 ? 'text-success' : 'text-danger') : '');
+            }
+            if(elIrr) {
+                elIrr.innerText = fmtPercent(irr);
+                elIrr.className = 'col-group-2 calculated-val out-irr ' + (irr !== null ? (irr >= 0 ? 'text-success' : 'text-danger') : '');
+            }
+            if(elMult) elMult.innerText = fmtMultiplier(mult);
+
+            if (tr) {
+                if (isFilterActive && surrender === null && death === null) {
+                    tr.classList.add('hidden');
+                } else {
+                    tr.classList.remove('hidden');
+                }
+                
+                const inputPremium = tr.querySelector('.in-premium');
+                if (inputPremium && userStore[y] && userStore[y].premium === null) {
+                    inputPremium.placeholder = fmt(y <= payYears ? globalPremium : 0);
+                }
+            }
+        }
+    }
+
+    function exportToClipboard() {
+        const hasSurvival = els.g_survivalToggle.value === "1";
+        
+        let headerCols = ["年度", "實繳保費", "累積保費"];
+        if (hasSurvival) headerCols.push("生存還本");
+        headerCols.push("末解約金", "ROI", "IRR", "身故保險金", "放大倍數");
+        let tsv = headerCols.join('\t') + '\n';
+
+        const rows = els.tableBody.querySelectorAll('tr');
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.classList.contains('hidden')) continue; 
+            
+            let rowData = [];
+            const cols = row.querySelectorAll('td');
+            for (let j = 0; j < cols.length; j++) {
+                const col = cols[j];
+                if (col.classList.contains('hidden')) continue; 
+                
+                const input = col.querySelector('input');
+                let cellText = "";
+                if (input) {
+                    cellText = input.value || input.placeholder || "0"; 
+                    cellText = cellText.replace(/,/g, ''); 
+                } else {
+                    cellText = col.innerText.replace(/,/g, '');
+                }
+                rowData.push(cellText.trim());
+            }
+            tsv += rowData.join('\t') + '\n';
+        }
+
+        const successHandler = function() {
+            const origText = els.btnExport.innerText;
+            els.btnExport.innerText = "複製成功！";
+            els.btnExport.style.backgroundColor = "var(--success)";
+            setTimeout(function() {
+                els.btnExport.innerText = origText;
+                els.btnExport.style.backgroundColor = "var(--accent)";
+            }, 2000);
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(tsv).then(successHandler).catch(function(err) { alert("複製失敗：" + err); });
+        } else {
+            const textArea = document.getElementById("clipboard-fallback");
+            textArea.value = tsv;
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                successHandler();
+            } catch (err) {
+                alert("瀏覽器不支援複製功能，請檢查環境設定。");
+            }
+        }
+    }
+
+    const globalInputs = ['g_payYears', 'g_premium', 'g_displayYears', 'g_survivalToggle'];
+    for (let i = 0; i < globalInputs.length; i++) {
+        const id = globalInputs[i];
+        document.getElementById(id).addEventListener('input', function() {
+            (id === 'g_displayYears' || id === 'g_survivalToggle') ? renderTable() : calculateAll();
+        });
+    }
+
+    els.filterToggle.addEventListener('change', calculateAll);
+    els.btnExport.addEventListener('click', exportToClipboard);
+
+    renderTable();
+});
+</script>
+</body>
+</html>

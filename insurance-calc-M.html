@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="保單試算">
+    <meta name="apple-mobile-web-app-title" content="保險商品效益計算機">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#003B5C">
     
@@ -55,10 +55,36 @@
         .form-control { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem; }
         .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 59, 92, 0.2); }
         
-        .toolbar { padding: 10px 20px; display: flex; align-items: center; border-bottom: 1px solid var(--border); background: #FFFFFF; flex-shrink: 0; }
+        .toolbar { 
+            padding: 12px 20px; 
+            display: flex; 
+            flex-direction: column; /* 垂直排列 */
+            align-items: flex-start; 
+            gap: 12px;
+            border-bottom: 1px solid var(--border); 
+            background: #FFFFFF; 
+            flex-shrink: 0; 
+        }
         .checkbox-label { display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--text-dark); user-select: none; }
         .checkbox-label input { margin-right: 8px; width: 16px; height: 16px; }
         
+        .summary-box {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            background-color: var(--bg-light);
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+        }
+        .summary-box span {
+            color: var(--primary);
+            font-size: 1.15rem;
+            margin-left: 8px;
+        }
+
         .table-container { 
             flex-grow: 1; 
             overflow: auto; 
@@ -67,14 +93,28 @@
             background-color: #FFFFFF;
         }
         
-        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
-        th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); text-align: right; white-space: nowrap; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 950px; }
         
+        /* 標題強制置中 */
         th { 
+            padding: 10px 8px; 
+            border-bottom: 1px solid var(--border); 
+            border-right: 1px solid var(--border); 
+            white-space: nowrap; 
+            text-align: center !important; 
             color: var(--primary); 
             font-weight: 600; 
             position: sticky; 
             border-top: 1px solid var(--border); 
+        }
+        
+        /* 資料格預設靠右 */
+        td { 
+            padding: 10px 8px; 
+            border-bottom: 1px solid var(--border); 
+            border-right: 1px solid var(--border); 
+            text-align: right; 
+            white-space: nowrap; 
         }
 
         /* 雙層表頭鎖定與 Z軸分配 */
@@ -140,6 +180,9 @@
             <input type="checkbox" id="filterToggle">
             僅顯示指定年度 (有輸入解約金或身故金之年度)
         </label>
+        <div class="summary-box">
+            累積總保費：<span id="out-total-premium">0</span>
+        </div>
     </div>
 
     <div class="table-container">
@@ -154,8 +197,8 @@
                 <tr>
                     <th class="col-group-1">實繳保費(可修改)</th>
                     <th class="col-group-1">累積保費</th>
-                    <th class="col-group-2 survival-col hidden">生存還本</th>
-                    <th class="col-group-2">末解約金</th>
+                    <th class="col-group-2 survival-col hidden">生存還本金</th>
+                    <th class="col-group-2">年度末解約金</th>
                     <th class="col-group-2">資產增值率</th>
                     <th class="col-group-2">IRR</th>
                     <th class="col-group-3">身故保險金</th>
@@ -179,7 +222,8 @@ document.addEventListener('DOMContentLoaded', function() {
         filterToggle: document.getElementById('filterToggle'),
         tableBody: document.getElementById('tableBody'),
         th_assetGroup: document.getElementById('th_assetGroup'),
-        survivalCols: document.getElementsByClassName('survival-col')
+        survivalCols: document.getElementsByClassName('survival-col'),
+        outTotalPremium: document.getElementById('out-total-premium')
     };
 
     const fmt = function(num) { 
@@ -356,6 +400,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+        
+        // 輸出累積總保費至 DOM
+        els.outTotalPremium.innerText = cumPremium > 0 ? fmt(cumPremium) : '0';
     }
 
     const globalInputs = ['g_payYears', 'g_premium', 'g_displayYears', 'g_survivalToggle'];

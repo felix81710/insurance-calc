@@ -23,46 +23,87 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-        body { background-color: #E9ECEF; color: var(--text-dark); padding: 16px; font-size: 14px; }
-        .container { max-width: 1200px; margin: 0 auto; background: #FFFFFF; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
-        .header { background-color: var(--primary); color: #FFFFFF; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 1.25rem; font-weight: 600; }
-        .btn { background-color: var(--accent); color: #FFFFFF; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: opacity 0.2s; }
-        .btn:hover { opacity: 0.9; }
-        .control-panel { padding: 16px 20px; background-color: var(--secondary); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end; }
+        
+        /* 系統層級鎖死滑動，避免 iOS 觸控劫持 */
+        html, body {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            overflow: hidden;
+            background-color: #E9ECEF;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+
+        .container { 
+            width: 100%; 
+            height: 100%; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: #FFFFFF; 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        .header { background-color: var(--primary); color: #FFFFFF; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .header h1 { font-size: 1.25rem; font-weight: 600; margin: 0 auto; text-align: center; width: 100%; }
+        
+        .control-panel { padding: 16px 20px; background-color: var(--secondary); border-bottom: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; flex-shrink: 0; }
         .form-group { display: flex; flex-direction: column; }
         .form-group label { font-size: 0.85rem; margin-bottom: 6px; font-weight: 600; color: var(--primary); }
         .form-control { padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 1rem; }
         .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0, 59, 92, 0.2); }
-        .toolbar { padding: 12px 20px; display: flex; align-items: center; border-bottom: 1px solid var(--border); background: #FFFFFF; }
+        
+        .toolbar { padding: 10px 20px; display: flex; align-items: center; border-bottom: 1px solid var(--border); background: #FFFFFF; flex-shrink: 0; }
         .checkbox-label { display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--text-dark); user-select: none; }
         .checkbox-label input { margin-right: 8px; width: 16px; height: 16px; }
-        .table-container { flex-grow: 1; overflow: auto; position: relative; }
+        
+        .table-container { 
+            flex-grow: 1; 
+            overflow: auto; 
+            -webkit-overflow-scrolling: touch; 
+            position: relative; 
+            background-color: #FFFFFF;
+        }
         
         table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
         th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); text-align: right; white-space: nowrap; }
-        th { background-color: var(--bg-light); color: var(--primary); font-weight: 600; position: sticky; top: 0; z-index: 10; border-top: 1px solid var(--border); }
-        thead tr:nth-child(1) th { top: 0; border-bottom: 1px solid var(--border); }
-        thead tr:nth-child(2) th { top: 41px; border-top: none; }
-        th:first-child, td:first-child { text-align: center; border-left: 1px solid var(--border); }
+        
+        th { 
+            color: var(--primary); 
+            font-weight: 600; 
+            position: sticky; 
+            border-top: 1px solid var(--border); 
+        }
 
-        .col-group-1 { background-color: rgba(235, 242, 247, 0.4); }
-        .col-group-2 { background-color: rgba(255, 255, 255, 1); }
-        .col-group-3 { background-color: rgba(253, 249, 237, 0.4); }
-        tbody tr:hover { background-color: rgba(0, 59, 92, 0.05); }
+        /* 雙層表頭鎖定與 Z軸分配 */
+        thead tr:nth-child(1) th { top: 0; z-index: 12; border-bottom: 1px solid var(--border); }
+        thead tr:nth-child(2) th { top: 41px; z-index: 11; border-top: none; }
+        
+        /* 凍結第一欄 */
+        th:first-child, td:first-child { text-align: center; border-left: 1px solid var(--border); position: sticky; left: 0; z-index: 5; background-color: #F8F9FA;}
+        thead tr:nth-child(1) th:first-child { z-index: 13; }
+
+        /* 絕對不透明的表頭背景色，防止滾動穿透 */
+        th.col-group-1 { background-color: #EBF2F7; }
+        th.col-group-2 { background-color: #FFFFFF; }
+        th.col-group-3 { background-color: #FDF9ED; }
+
+        /* 資料列背景色 */
+        td.col-group-1 { background-color: rgba(235, 242, 247, 0.4); }
+        td.col-group-2 { background-color: #FFFFFF; }
+        td.col-group-3 { background-color: rgba(253, 249, 237, 0.4); }
+        
+        tbody tr:hover td { background-color: rgba(0, 59, 92, 0.05); }
 
         .input-cell { width: 100px; padding: 6px; border: 1px solid #aaa; border-radius: 4px; text-align: right; font-size: 0.95rem; color: var(--primary); background-color: #fff; }
         .input-cell:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3); }
+        
         .calculated-val { font-weight: 600; }
         .text-danger { color: var(--danger); }
         .text-success { color: var(--success); }
         .hidden { display: none !important; }
-
-        @media (max-width: 768px) {
-            .header h1 { font-size: 1.1rem; }
-            body { padding: 0; }
-            .container { border-radius: 0; max-height: 100vh; }
-        }
     </style>
 </head>
 <body>
@@ -70,7 +111,6 @@
 <div class="container">
     <div class="header">
         <h1>保險商品效益計算機</h1>
-        <button class="btn" id="btnExport">複製數據 (TSV)</button>
     </div>
 
     <div class="control-panel">
@@ -116,7 +156,7 @@
                     <th class="col-group-1">累積保費</th>
                     <th class="col-group-2 survival-col hidden">生存還本</th>
                     <th class="col-group-2">末解約金</th>
-                    <th class="col-group-2">ROI</th>
+                    <th class="col-group-2">資產增值率</th>
                     <th class="col-group-2">IRR</th>
                     <th class="col-group-3">身故保險金</th>
                     <th class="col-group-3">放大倍數</th>
@@ -126,8 +166,6 @@
         </table>
     </div>
 </div>
-
-<textarea id="clipboard-fallback" style="position: absolute; left: -9999px;"></textarea>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -140,7 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
         g_survivalToggle: document.getElementById('g_survivalToggle'),
         filterToggle: document.getElementById('filterToggle'),
         tableBody: document.getElementById('tableBody'),
-        btnExport: document.getElementById('btnExport'),
         th_assetGroup: document.getElementById('th_assetGroup'),
         survivalCols: document.getElementsByClassName('survival-col')
     };
@@ -321,63 +358,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function exportToClipboard() {
-        const hasSurvival = els.g_survivalToggle.value === "1";
-        
-        let headerCols = ["年度", "實繳保費", "累積保費"];
-        if (hasSurvival) headerCols.push("生存還本");
-        headerCols.push("末解約金", "ROI", "IRR", "身故保險金", "放大倍數");
-        let tsv = headerCols.join('\t') + '\n';
-
-        const rows = els.tableBody.querySelectorAll('tr');
-        for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            if (row.classList.contains('hidden')) continue; 
-            
-            let rowData = [];
-            const cols = row.querySelectorAll('td');
-            for (let j = 0; j < cols.length; j++) {
-                const col = cols[j];
-                if (col.classList.contains('hidden')) continue; 
-                
-                const input = col.querySelector('input');
-                let cellText = "";
-                if (input) {
-                    cellText = input.value || input.placeholder || "0"; 
-                    cellText = cellText.replace(/,/g, ''); 
-                } else {
-                    cellText = col.innerText.replace(/,/g, '');
-                }
-                rowData.push(cellText.trim());
-            }
-            tsv += rowData.join('\t') + '\n';
-        }
-
-        const successHandler = function() {
-            const origText = els.btnExport.innerText;
-            els.btnExport.innerText = "複製成功！";
-            els.btnExport.style.backgroundColor = "var(--success)";
-            setTimeout(function() {
-                els.btnExport.innerText = origText;
-                els.btnExport.style.backgroundColor = "var(--accent)";
-            }, 2000);
-        };
-
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(tsv).then(successHandler).catch(function(err) { alert("複製失敗：" + err); });
-        } else {
-            const textArea = document.getElementById("clipboard-fallback");
-            textArea.value = tsv;
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                successHandler();
-            } catch (err) {
-                alert("瀏覽器不支援複製功能，請檢查環境設定。");
-            }
-        }
-    }
-
     const globalInputs = ['g_payYears', 'g_premium', 'g_displayYears', 'g_survivalToggle'];
     for (let i = 0; i < globalInputs.length; i++) {
         const id = globalInputs[i];
@@ -387,7 +367,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     els.filterToggle.addEventListener('change', calculateAll);
-    els.btnExport.addEventListener('click', exportToClipboard);
 
     renderTable();
 });
